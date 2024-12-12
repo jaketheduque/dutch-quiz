@@ -5,5 +5,6 @@ import PocketBaseContext from "./PocketBaseContext";
 export function PrivateRoute({ element }) {
     const pb = useContext(PocketBaseContext);
     const isAuthenticated = pb.authStore.isValid;
+
     return isAuthenticated ? element : <Navigate to="/login" />;
 }

@@ -6,12 +6,12 @@ const FlavorCombo = (combo) => {
     const name = toDisplay(combo.combo.name);
 
     return (
-        <div class="card bg-base-100">
-            <div class="card-body">
-                <h1 class="card-title justify-center mb-4 text-4xl font-bold">{name}</h1>
+        <div className="card">
+            <div className="card-body">
+                <h1 className="card-title justify-center mb-4 text-4xl font-bold">{name}</h1>
                 <div>
                     {combo.combo.expand.flavors.map((flavor) => {
-                        return <p class="text-center">{toDisplay(flavor.name)}</p>
+                        return <p className="text-center">{toDisplay(flavor.name)}</p>
                     })}
                 </div>
             </div>

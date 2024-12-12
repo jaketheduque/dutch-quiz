@@ -1,15 +1,18 @@
-import './App.css';
 import {
   createBrowserRouter,
   RouterProvider,
 } from "react-router-dom";
-import PocketBaseProvider from './Components/PocketBaseProvider';
-import { PrivateRoute } from './Components/PrivateRoute';
 
+import PocketBaseProvider from './Components/PocketBaseProvider';
+import { PrimeReactProvider } from 'primereact/api';
+import Tailwind from 'primereact/passthrough/tailwind';
+
+import { PrivateRoute } from './Components/PrivateRoute';
 import Login from './Components/Login';
 import Home from './Components/Home';
 import Register from './Components/Register';
 import FlavorCombosPage from './Components/FlavorCombosPage';
+import Quiz from './Components/Quiz';
 
 const router = createBrowserRouter([
   {
@@ -27,15 +30,21 @@ const router = createBrowserRouter([
   {
     path: "/flavorcombos",
     element: <FlavorCombosPage />
+  },
+  {
+    path: "/quiz",
+    element: <Quiz />
   }
 ]);
 
 function App() {
   return (
-    <div class="bg-zinc-50 h-max min-h-screen w-full">
-      <PocketBaseProvider>
-        <RouterProvider router={router} />
-      </PocketBaseProvider>
+    <div className="w-screen h-screen">
+      <PrimeReactProvider value={{ unstyled: true, pt: Tailwind }}>
+        <PocketBaseProvider>
+          <RouterProvider router={router} />
+        </PocketBaseProvider>
+      </PrimeReactProvider>
     </div>
   );
 }
