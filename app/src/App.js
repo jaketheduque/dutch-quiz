@@ -4,8 +4,6 @@ import {
 } from "react-router-dom";
 
 import PocketBaseProvider from './Components/PocketBaseProvider';
-import { PrimeReactProvider } from 'primereact/api';
-import Tailwind from 'primereact/passthrough/tailwind';
 
 import { PrivateRoute } from './Components/PrivateRoute';
 import Login from './Components/Login';
@@ -40,11 +38,9 @@ const router = createBrowserRouter([
 function App() {
   return (
     <div className="w-screen h-screen">
-      <PrimeReactProvider value={{ unstyled: true, pt: Tailwind }}>
-        <PocketBaseProvider>
-          <RouterProvider router={router} />
-        </PocketBaseProvider>
-      </PrimeReactProvider>
+      <PocketBaseProvider>
+        <RouterProvider router={router} />
+      </PocketBaseProvider>
     </div>
   );
 }

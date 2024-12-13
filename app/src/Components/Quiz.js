@@ -4,7 +4,7 @@ import PocketBaseContext from "./PocketBaseContext";
 import Correct from './Correct.js';
 import Incorrect from "./Incorrect.js";
 
-import { MultiSelect } from 'primereact/multiselect';
+import Select from 'react-select';
 import arrayShuffle from 'array-shuffle';
 
 const Quiz = () => {
@@ -29,7 +29,7 @@ const Quiz = () => {
             const flavors = [];
             for (var i = 0 ; i < result.length ; i++) {
                 const flavor = result[i];
-                flavors.push({label: flavor.name, value: flavor.name});                
+                flavors.push({value: flavor.name, label: flavor.name});                
             }            
 
             setOptions(flavors.sort((a, b) => {return a.value.localeCompare(b.value)}));
@@ -47,19 +47,19 @@ const Quiz = () => {
         const correctFlavors = combo.expand.flavors.map((e) => e.name);
         var correctToppings = [];
         
-        var correct = correctFlavors.sort().join(',') === selectedFlavors.sort().join(',');
+        var correct = correctFlavors.sort().join(',') === selectedFlavors.map(val => val.value).sort().join(',');
 
         // checks if toppings are correct if the combo has toppings
         if (Object.hasOwn(combo.expand, 'toppings')) {
             correctToppings = combo.expand.toppings.map((e) => e.name);
-            correct = correct && correctToppings.sort().join(',') === selectedToppings.sort().join(',');
+            correct = correct && correctToppings.sort().join(',') === selectedToppings.map(val => val.value).sort().join(',');
         }
 
         // add answer to list
         answers.push({
             'correct': correct,
-            'flavors': selectedFlavors,
-            'toppings': selectedToppings
+            'flavors': selectedFlavors.map(val => val.value),
+            'toppings': selectedToppings.map(val => val.value)
         });
         
         // checks if answers are correct
@@ -88,9 +88,7 @@ const Quiz = () => {
                 <div className="flex flex-row gap-2">
                     <p className="w-8">{numQuestions}</p>
                     <input type="range" step={1} min={1} max={allCombos.length} value={numQuestions} className="range" onChange={(e) => {
-                        setNumQuestions(e.target.value);
-                        console.log(e.target.value);
-                        
+                        setNumQuestions(e.target.value);                        
                     }}/>
                 </div>
                 <button className="btn btn-primary w-full" onClick={() => initQuiz(numQuestions)}>Start Quiz</button >
@@ -113,9 +111,8 @@ const Quiz = () => {
             </div>
         );
     } else { // quiz has been initialized, starting showing questions
-        const combo = quizCombos[index];       
+        const combo = quizCombos[index];
         
-        // TODO change from primereact multiselect
         return (
             <div className="flex justify-center flex-col gap-2 items-center w-screen h-full bg-slate-100">
             <h1 className="text-xl text-black">{index+1} of {numQuestions}</h1>
@@ -125,13 +122,13 @@ const Quiz = () => {
                 <h1 className="text-2xl font-bold flex justify-center">{combo.name}</h1>
                 <div className="flex flex-row items-center gap-2">
                     <h1 className="text-sm flex justify-center">Flavors:</h1>
-                    <MultiSelect className="text-sm" value={selectedFlavors} onChange={(e) => setSelectedFlavors(e.value)} options={options} filter
-                        display="chip" placeholder="Select Flavors"/>
+                    <Select options={options} value={selectedFlavors} isMulti onChange={(e) => setSelectedFlavors(e)}/>
                 </div>
                 <div className="flex flex-row items-center gap-2">
                     <h1 className="text-sm flex justify-center">Toppings:</h1>
-                    <MultiSelect className="text-sm" value={selectedToppings} onChange={(e) => setSelectedToppings(e.value)} options={options} filter
-                        display="chip" placeholder="Select Toppings"/>
+                    <Select options={options} value={selectedToppings} isMulti onChange={(e) => setSelectedToppings(e)}/>
+                    {/* <MultiSelect className="text-sm" value={selectedToppings} onChange={(e) => setSelectedToppings(e.value)} options={options} filter
+                        display="chip" placeholder="Select Toppings"/> */}
                 </div>
                 <button className="btn btn-primary w-full" onClick={() => checkAnswers()}>Submit</button >
             </div>
