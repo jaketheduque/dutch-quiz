@@ -21,7 +21,7 @@ const Correct = () => {
         <div className="flex justify-center items-center quiz-result w-screen h-screen bg-green-600 text-white">
             <div className="flex flex-col justify-center items-center gap-3">
                 <progress className="progress w-full" value={timeElapsed} max="300"></progress>
-                <h1 className="text-8xl">Correct!</h1>
+                <h1 className="text-6xl">Correct!</h1>
             </div>
         </div>
     );
