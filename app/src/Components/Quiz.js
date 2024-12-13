@@ -115,6 +115,7 @@ const Quiz = () => {
     } else { // quiz has been initialized, starting showing questions
         const combo = quizCombos[index];       
         
+        // TODO change from primereact multiselect
         return (
             <div className="flex justify-center flex-col gap-2 items-center w-screen h-full bg-slate-100">
             <h1 className="text-xl text-black">{index+1} of {numQuestions}</h1>
