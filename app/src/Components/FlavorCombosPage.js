@@ -16,17 +16,22 @@ const FlavorCombosPage = () => {
     }, []);
 
     return (
-        <div className="flex flex-col p-4 gap-4 bg-slate-100 h-full">
-            <div className="flex p-4 self-center rounded-xl">
-                <div className="flex items-center p-1 pr-4">
-                    <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
-                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
-                    </svg>
-                </div>
-                <input type="text" className="outline-none" placeholder="Search flavor combos..." onChange={(e) => {setSearch(e.target.value)}}/>
-            </div>
-            <div className="flex flex-row flex-wrap gap-3 justify-center">
-                {combos.filter((val) => val.name.includes(search.replace(" ", "_").toUpperCase())).map((val) => {
+        <div className="flex flex-col p-4 gap-4 min-h-screen h-max">
+            <label className="input input-bordered flex items-center gap-2">
+            <input type="text" className="grow" placeholder="Search" onChange={(e) => setSearch(e.target.value)}/>
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 16 16"
+                fill="currentColor"
+                className="h-4 w-4 opacity-70">
+                <path
+                fillRule="evenodd"
+                d="M9.965 11.026a5 5 0 1 1 1.06-1.06l2.755 2.754a.75.75 0 1 1-1.06 1.06l-2.755-2.754ZM10.5 7a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Z"
+                clipRule="evenodd" />
+            </svg>
+            </label>
+            <div className="flex flex-row flex-wrap gap-5 justify-center">
+                {combos.sort((a, b) => {return a.name.localeCompare(b.name)}).filter((val) => val.name.startsWith(search.toUpperCase())).map((val) => {
                     return <FlavorCombo combo={val} />
                 })}
             </div>

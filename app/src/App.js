@@ -37,11 +37,9 @@ const router = createBrowserRouter([
 
 function App() {
   return (
-    <div className="w-screen h-screen">
-      <PocketBaseProvider>
-        <RouterProvider router={router} />
-      </PocketBaseProvider>
-    </div>
+    <PocketBaseProvider>
+      <RouterProvider router={router} />
+    </PocketBaseProvider>
   );
 }
 

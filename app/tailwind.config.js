@@ -4,11 +4,10 @@ module.exports = {
     "./src/**/*.{js,jsx,ts,tsx}",
     "./node_modules/primereact/**/*.{js,ts,jsx,tsx}",
   ],
-  theme: {
-    extend: {},
+  daisyui: {
+    themes: ["light", "dark", "cupcake"],
   },
   plugins: [
     require('daisyui')
   ],
 }
-

@@ -25,8 +25,8 @@ const Login = () => {
     }
 
     return ( 
-        <div className="flex justify-center flex-col gap-2 items-center h-full bg-slate-100">
-        <div className="card w-96 bg-base-100 shadow-xl h-80">
+        <div className="flex flex-col h-screen p-3 gap-2 items-center justify-center">
+        <div className="card w-full h-fit shadow-xl">
         <div className="card-body">
             <h1 className="card-title flex justify-center">Login</h1>
             <form className="h-full flex flex-col justify-between gap-5" onSubmit={handleSubmit}>
@@ -46,7 +46,7 @@ const Login = () => {
             </form>
         </div>
         </div>
-        <Link className="text-neutral-500 text-md" to="/register">Don't have an account?</Link>
+        <Link className="text-secondary text-md" to="/register">Don't have an account?</Link>
         </div>
      );
 }

@@ -4,11 +4,19 @@ import PocketBaseContext from "./PocketBaseContext";
 import Correct from './Correct.js';
 import Incorrect from "./Incorrect.js";
 
-import Select from 'react-select';
+import Select, { createFilter } from 'react-select';
 import arrayShuffle from 'array-shuffle';
 
 const Quiz = () => {
     const pb = useContext(PocketBaseContext);
+
+    const filterOptions = {
+        ignoreCase: true,
+        ignoreAccents: true,
+        matchFrom: 'start',
+        stringify: option => `${option.label} ${option.value}`,
+        trim: true,
+    }
 
     const [index, setIndex] = useState(0);
     const [numQuestions, setNumQuestions] = useState(10);
@@ -18,7 +26,7 @@ const Quiz = () => {
     const [options, setOptions] = useState([]);
     const [selectedFlavors, setSelectedFlavors] = useState([]);
     const [selectedToppings, setSelectedToppings] = useState([]);
-    const [result, setResult] = useState(null);
+    const [transition, setTransition] = useState(null);
 
     useEffect(() => {
         pb.collection('flavor_combos').getFullList({ requestKey: null, expand: 'flavors,toppings'}).then(result => {
@@ -64,12 +72,10 @@ const Quiz = () => {
         
         // checks if answers are correct
         if (correct) {
-            setResult(<Correct></Correct>);
+            setTransition(<Correct onClick={() => setTransition(null)}></Correct>);
         } else {
-            setResult(<Incorrect combo={combo}></Incorrect>);
+            setTransition(<Incorrect combo={combo} onClick={() => setTransition(null)}></Incorrect>);
         }
-
-        setTimeout(() => {setResult(null)}, 3000);
 
         if (quizCombos.length - index != 1) {
             setIndex(index+1);
@@ -81,7 +87,7 @@ const Quiz = () => {
     
     if (quizCombos === undefined | quizCombos.length == 0) { // quiz has not been initialized yet
         return ( 
-            <div className="flex justify-center flex-col items-center h-full bg-slate-100">
+            <div className="flex justify-center flex-col items-center min-h-screen">
             <div className="card w-fit bg-base-100 shadow-xl h-fit">
             <div className="flex card-body gap-5">
                 <h1 className="card-title flex justify-center">How many questions?</h1>
@@ -91,49 +97,89 @@ const Quiz = () => {
                         setNumQuestions(e.target.value);                        
                     }}/>
                 </div>
-                <button className="btn btn-primary w-full" onClick={() => initQuiz(numQuestions)}>Start Quiz</button >
+                <button className="btn btn-block" onClick={() => initQuiz(numQuestions)}>Start Quiz</button >
             </div>
             </div>
             </div>
          );
     } else if (answers.length === quizCombos.length) { // quiz has been finished
+        const results = [];
         var correct = 0;
         for (var i = 0 ; i < answers.length ; i++) {
+            // create empty toppings array if doesn't exist
+            if (!Object.hasOwn(quizCombos[i].expand, 'toppings')) {
+                quizCombos[i].expand.toppings = [];
+            }
+
             if (answers[i].correct) {
                 correct++;
+                results.push(
+                    <div className="card bg-green-600 w-75% text-white">
+                    <div className="flex card-body items-center">
+                        <h2 className="text-2xl card-title">{quizCombos[i].name}</h2>
+                        <ul className="list-disc">
+                            {quizCombos[i].expand.flavors.map((e) => {
+                                return <li>{e.name}</li>;
+                            })}
+                            {quizCombos[i].expand.toppings.map((e) => {
+                                return <li>{e.name} <span className="italic">(Topping)</span></li>;
+                            })}
+                        </ul>
+                    </div>
+                    </div>
+                )
+            } else {
+                results.push(
+                    <div className="card bg-red-600 w-75% text-white">
+                    <div className="flex card-body items-center">
+                        <h2 className="text-2xl card-title">{quizCombos[i].name}</h2>
+                        <ul className="list-disc">
+                            {quizCombos[i].expand.flavors.map((e) => {
+                                return <li>{e.name}</li>;
+                            })}
+                            {quizCombos[i].expand.toppings.map((e) => {
+                                return <li>{e.name} <span className="italic">(Topping)</span></li>;
+                            })}
+                        </ul>
+                    </div>
+                    </div>
+                )
             }
         }
 
         return (
-            <div className="flex justify-center flex-col gap-2 items-center h-full bg-slate-100">
-            <h1 className="text-9xl font-bold text-black">You got {correct} out of {quizCombos.length} correct!</h1>
-            {result}
+            <div className="flex flex-col p-10 gap-8 items-center min-h-screen h-max">
+            <h1 className="text-2xl font-bold">You got {correct} out of {quizCombos.length} correct!</h1>
+            <div className="flex flex-col gap-5">
+                {(transition == null) && results}
+            </div>
+            {transition}
             </div>
         );
     } else { // quiz has been initialized, starting showing questions
         const combo = quizCombos[index];
         
         return (
-            <div className="flex justify-center flex-col gap-2 items-center w-screen h-full bg-slate-100">
-            <h1 className="text-xl text-black">{index+1} of {numQuestions}</h1>
-            <div className="card w-screen bg-base-100 shadow-xl h-fit">
-            <div className="flex card-body items-center gap-3">
+            <div className="flex justify-center flex-col gap-2 items-center w-screen min-h-screen">
+            <h1 className="text-xl">{index+1} of {numQuestions}</h1>
+            <div className="flex flex-col w-screen h-fit items-center p-5 gap-3 bg-base-100 shadow-xl">
                 <h1 className="text-lg italic flex justify-center">What flavors are in:</h1>
                 <h1 className="text-2xl font-bold flex justify-center">{combo.name}</h1>
-                <div className="flex flex-row items-center gap-2">
+                <div className="flex flex-row w-full justify-center items-center gap-2">
                     <h1 className="text-sm flex justify-center">Flavors:</h1>
-                    <Select options={options} value={selectedFlavors} isMulti onChange={(e) => setSelectedFlavors(e)}/>
+                    <div className="w-3/4">
+                        <Select className="text-sm" options={options} value={selectedFlavors} isMulti filterOption={createFilter(filterOptions)} onChange={(e) => setSelectedFlavors(e)}/>
+                    </div>
                 </div>
-                <div className="flex flex-row items-center gap-2">
+                <div className="flex flex-row w-full justify-center items-center gap-2">
                     <h1 className="text-sm flex justify-center">Toppings:</h1>
-                    <Select options={options} value={selectedToppings} isMulti onChange={(e) => setSelectedToppings(e)}/>
-                    {/* <MultiSelect className="text-sm" value={selectedToppings} onChange={(e) => setSelectedToppings(e.value)} options={options} filter
-                        display="chip" placeholder="Select Toppings"/> */}
+                    <div className="w-3/4">
+                        <Select className="text-sm" options={options} value={selectedToppings} isMulti filterOption={createFilter(filterOptions)} onChange={(e) => setSelectedToppings(e)}/>  
+                    </div>
                 </div>
-                <button className="btn btn-primary w-full" onClick={() => checkAnswers()}>Submit</button >
+                <button className="btn btn-block" onClick={() => checkAnswers()}>Submit</button >
             </div>
-            </div>
-            {result}
+            {transition}
             </div>
         );
     }
