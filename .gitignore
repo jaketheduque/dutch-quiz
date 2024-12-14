@@ -1,2 +1,10 @@
+docker-compose.yaml
+**/Dockerfile
+**/build.sh
+
 app/node_modules
+app/build
+app/nginx.conf
+app/.dockerignore
+
 pb/

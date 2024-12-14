@@ -3,7 +3,7 @@ import React from 'react';
 import PocketBaseContext from './PocketBaseContext';
 import PocketBase from 'pocketbase';
 
-const pb = new PocketBase('http://127.0.0.1:8090');
+const pb = new PocketBase('https://dutch.xieservers.com/pb');
 
 const PocketBaseProvider = ({ children }) => {
   return (
