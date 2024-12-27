@@ -15,7 +15,7 @@ import Quiz from './Components/Quiz';
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <PrivateRoute element={<Home />} />
+    element: <Home />
   },
   {
     path: "/login",

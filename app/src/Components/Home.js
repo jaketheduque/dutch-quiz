@@ -1,19 +1,17 @@
-import { useContext, useState } from "react";
+import { useContext, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import PocketBaseContext from "./PocketBaseContext";
 
+import Navbar from "./Navbar.js"
+
 const Home = () => {
-    const pb = useContext(PocketBaseContext);
+    let navigate = useNavigate();
 
     return ( 
-        <div className="flex justify-center flex-col gap-2 items-center h-full bg-slate-100">
-        <div className="card w-96 bg-base-100 shadow-xl h-80">
-        <div className="card-body">
-            <h1 className="card-title flex justify-center">Welcome!</h1>
-            <form className="h-full flex flex-col justify-between gap-5">
-                
-            </form>
-        </div>
-        </div>
+        <div className="flex justify-center flex-col gap-2 items-center">
+        <Navbar />
+        <button className="btn btn-block rounded-none" onClick={() => navigate('/quiz?mode=competitive')}>Competitive Mode</button>
+        <button className="btn btn-block rounded-none" onClick={() => navigate('/quiz?mode=chill')}>Chill Mode</button>
         </div>
      );
 }
