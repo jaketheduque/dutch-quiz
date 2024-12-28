@@ -20,13 +20,13 @@ const Competitive = () => {
 
     var allCombos;
     var allFlavors;
-    var selectedAnswer = null;
+    var selectedAnswer;
 
     const radioRef = useRef(null);
+    const answers = useRef([]);
 
     const [index, setIndex] = useState(0);
     const [numQuestions, setNumQuestions] = useState(10);
-    const [answers, setAnswers] = useState([]);
     const [quizQuestions, setQuizQuestions] = useState([]);
 
     useEffect(() => {
@@ -53,10 +53,10 @@ const Competitive = () => {
 
         // for each combo, generate 3 wrong answers
         for (var i = 0 ; i < 10 ; i++) {
-            const wrongAnswers = generateWrongAnswers(combos[i]).map((combo) => combo.expand.flavors.map((val) => val.name));
+            const wrongAnswers = generateWrongAnswers(combos[i]);
             const question = {
                 name: combos[i].name,
-                correct: combos[i].expand.flavors.map((val) => val.name),
+                correct: combos[i],
                 wrong: wrongAnswers
             };
 
@@ -137,30 +137,31 @@ const Competitive = () => {
 
     // takes in a flavor combo, and returns an array of three other "plausible" answer choices based on the flavors in the combo
     function generateWrongAnswers(combo) {
-        var similarCombos = Array.from(allCombos);
+        var similarCombos = [...new Set(allCombos)];
         similarCombos.sort((a, b) => compareCombos(combo, a) - compareCombos(combo, b));
 
-        return similarCombos.slice(1, 4);
+        return similarCombos.slice(0, 3);
     }
 
     function checkAnswers() {
         const combo = quizQuestions[index];
 
         // add answer to list
-        answers.push(selectedAnswer);
+        answers.current.push(selectedAnswer);
         
         // checks if answers are correct
         if (combo.correct == selectedAnswer) {
             console.log("correct!");
-            
         } else {
             console.log("incorrect!");
         }
 
+        // moves question forward by one
         if (quizQuestions.length - index != 1) {
             setIndex(index+1);
         }
 
+        // unchecks each radio box
         radioRef.current.forEach((element) => element.checked = false);
     }
     
@@ -240,30 +241,20 @@ const Competitive = () => {
             <div className="flex flex-col w-screen h-fit items-center p-5 gap-3 bg-base-100 shadow-xl">
                 <h1 className="text-lg italic flex justify-center">What flavors are in:</h1>
                 <h1 className="text-2xl font-bold flex justify-center">{combo.name}</h1>
-                <div className="form-control">
-                    <label className="label cursor-pointer">
-                        <input type="radio" name="answers" ref={(node) => getRadios()[0] = node} className="radio" onClick={() => selectedAnswer = options[0]}/>
-                        <span className="label-text">{options[0].join(', ')}</span>
-                    </label>
-                </div>
-                <div className="form-control">
-                    <label className="label cursor-pointer">
-                        <input type="radio" name="answers" ref={(node) => getRadios()[1] = node} className="radio" onClick={() => selectedAnswer = options[1]}/>
-                        <span className="label-text">{options[1].join(', ')}</span>
-                    </label>
-                </div>
-                <div className="form-control">
-                    <label className="label cursor-pointer">
-                        <input type="radio" name="answers" ref={(node) => getRadios()[2] = node} className="radio" onClick={() => selectedAnswer = options[2]}/>
-                        <span className="label-text">{options[2].join(', ')}</span>
-                    </label>
-                </div>
-                <div className="form-control">
-                    <label className="label cursor-pointer">
-                        <input type="radio" name="answers" ref={(node) => getRadios()[3] = node} className="radio" onClick={() => selectedAnswer = options[3]}/>
-                        <span className="label-text">{options[3].join(', ')}</span>
-                    </label>
-                </div>
+                {options.map((option, index) => {
+                    return (<div key={index} className="form-control">
+                        <label className="label cursor-pointer">
+                            <input type="radio" name="answers" ref={(node) => getRadios()[index] = node} className="radio mx-3" onClick={() => selectedAnswer = option}/>
+                            <div>
+                                <p className="label-text"><span className="font-bold">Flavors: </span>{option.expand.flavors.map(e => e.name).join(', ')}</p>
+                                {option.expand.toppings != null ? 
+                                    <p className="label-text"><span className="font-bold">Toppings: </span>{option.expand.toppings.map(e => e.name).join(', ')}</p> :
+                                    <p className="label-text"><span className="font-bold">Toppings: </span>None</p>
+                                }
+                            </div>
+                        </label>
+                    </div>);
+                })}
                 <button className="btn btn-block" onClick={() => checkAnswers()}>Submit</button >
             </div>
             </div>
