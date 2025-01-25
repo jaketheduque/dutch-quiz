@@ -7,4 +7,4 @@ app/build
 app/nginx.conf
 app/.dockerignore
 
-pb/
+pb_data/
