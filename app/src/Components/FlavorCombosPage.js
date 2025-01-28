@@ -10,7 +10,7 @@ const FlavorCombosPage = () => {
     const [combos, setCombos] = useState([]);
 
     useEffect(() => {
-        pb.collection('flavor_combos').getFullList({ requestKey: null, expand: 'flavors'}).then(result => {
+        pb.collection('flavor_combos').getFullList({ requestKey: null, expand: 'ingredients'}).then(result => {
             setCombos(result);
         });
     }, []);

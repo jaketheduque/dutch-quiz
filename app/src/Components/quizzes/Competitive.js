@@ -1,41 +1,40 @@
-import { useContext, useState, useEffect, useRef } from "react";
+import { useContext, useState, useEffect, useRef, useMemo } from "react";
 import PocketBaseContext from "../PocketBaseContext.js";
 
-import Correct from '../Correct.js';
-import Incorrect from "../Incorrect.js";
+import { useTimer } from "../hooks/useTimer.js";
 
-import Select, { createFilter } from 'react-select';
 import arrayShuffle from 'array-shuffle';
 
 const Competitive = () => {
     const pb = useContext(PocketBaseContext);
 
-    const filterOptions = {
-        ignoreCase: true,
-        ignoreAccents: true,
-        matchFrom: 'start',
-        stringify: option => `${option.label} ${option.value}`,
-        trim: true,
-    }
-
-    var allCombos;
-    var allFlavors;
-    var selectedAnswer;
+    const [allCombos, setAllCombos] = useState([]);
+    const [allIngredients, setAllIngredients] = useState([]);
+    const [selectedAnswer, setSelectedAnswer] = useState();
 
     const radioRef = useRef(null);
     const answers = useRef([]);
 
-    const [index, setIndex] = useState(0);
+    const [index, setIndex] = useState(-1);
     const [numQuestions, setNumQuestions] = useState(10);
     const [quizQuestions, setQuizQuestions] = useState([]);
+    const [timeRemaining, isRunning, setIsRunning] = useTimer(60 * 1000);
+
+    const optionsMemo = useMemo(() => {
+        if (quizQuestions.length > 0) {
+            const combo = quizQuestions[index];
+            var options = [...combo.wrong, combo.correct];
+            return arrayShuffle(options);
+        }
+    }, [index]);
 
     useEffect(() => {
         pb.collection('flavor_combos').getFullList({ requestKey: null, expand: 'flavors,toppings'}).then(result => {
-            allCombos = result;
+            setAllCombos(result);
         });
 
-        pb.collection('flavors').getFullList({ requestKey: null}).then(result => {
-            allFlavors = result;
+        pb.collection('ingredients').getFullList({ requestKey: null}).then(result => {
+            setAllIngredients(result);
         });
     }, []);
 
@@ -47,12 +46,12 @@ const Competitive = () => {
         return radioRef.current;
     }
 
-    // will generate 10 multiple choice questions for the quiz
+    // will multiple choice questions for the quiz from allCombos
     function initQuiz() {
         const combos = arrayShuffle(allCombos);
 
         // for each combo, generate 3 wrong answers
-        for (var i = 0 ; i < 10 ; i++) {
+        for (var i = 0 ; i < combos.length ; i++) {
             const wrongAnswers = generateWrongAnswers(combos[i]);
             const question = {
                 name: combos[i].name,
@@ -62,35 +61,9 @@ const Competitive = () => {
 
             setQuizQuestions(old => [...old, question]);
         }
-    }
 
-    function similarFlavors(flavor) {
-        // TODO evaluate the "flavor profile" of the combo as a whole and sub in something for ANY_FLAVOR if needed
-        if (flavor.name === 'ANY_FLAVOR') {
-            const shuffled = arrayShuffle(allFlavors);
-            return shuffled[0];
-        }
-
-        const flavorsSorted = allFlavors.filter((val) => val.id !== flavor.id).filter((val) => flavor.aroma === val.aroma).sort((val1, val2) => {
-            var totalDiff1 = 0;
-            var totalDiff2 = 0
-
-            totalDiff1 += Math.abs(flavor.sweet - val1.sweet);
-            totalDiff1 += Math.abs(flavor.sour - val1.sour);
-            totalDiff1 += Math.abs(flavor.bitter - val1.bitter);
-            totalDiff1 += Math.abs(flavor.salt - val1.salt);
-            totalDiff1 += Math.abs(flavor.spicy - val1.spicy);
-
-            totalDiff2 += Math.abs(flavor.sweet - val2.sweet);
-            totalDiff2 += Math.abs(flavor.sour - val2.sour);
-            totalDiff2 += Math.abs(flavor.bitter - val2.bitter);
-            totalDiff2 += Math.abs(flavor.salt - val2.salt);
-            totalDiff2 += Math.abs(flavor.spicy - val2.spicy);
-
-            return totalDiff1 - totalDiff2;
-        });
-
-        return flavorsSorted;
+        setIndex(0);
+        setIsRunning(true);
     }
 
     function compareCombos(combo1, combo2) {
@@ -143,11 +116,11 @@ const Competitive = () => {
         return similarCombos.slice(0, 3);
     }
 
-    function checkAnswers() {
+    function checkAnswer() {
         const combo = quizQuestions[index];
 
         // add answer to list
-        answers.current.push(selectedAnswer);
+        answers.current.push(selectedAnswer);        
         
         // checks if answers are correct
         if (combo.correct == selectedAnswer) {
@@ -164,6 +137,14 @@ const Competitive = () => {
         // unchecks each radio box
         radioRef.current.forEach((element) => element.checked = false);
     }
+
+    function msToTime(s) {
+        var ms = s % 1000;
+        s = (s - ms) / 1000;
+        var secs = s % 60;
+      
+        return secs + '.' + (Math.floor(ms/100));
+      }
     
     if (quizQuestions === undefined | quizQuestions.length == 0) { // quiz has not been started yet
         return ( 
@@ -177,26 +158,26 @@ const Competitive = () => {
             </div>
             </div>
          );
-    } else if (answers.length === quizQuestions.length) { // quiz has been finished
+    } else if (timeRemaining === 0) { // time is up
         const results = [];
-        var correct = 0;
-        for (var i = 0 ; i < answers.length ; i++) {
+        var numCorrect = 0;
+        for (var i = 0 ; i < answers.current.length ; i++) {            
             // create empty toppings array if doesn't exist
-            if (!Object.hasOwn(quizQuestions[i].expand, 'toppings')) {
-                quizQuestions[i].expand.toppings = [];
-            }
+            if (!Object.hasOwn(quizQuestions[i].correct.expand, 'toppings')) {
+                quizQuestions[i].correct.expand.toppings = [];
+            }            
 
-            if (answers[i].correct) {
-                correct++;
+            if (answers.current[i] == quizQuestions[i].correct) {                
+                numCorrect++;
                 results.push(
                     <div className="card bg-green-600 w-75% text-white">
                     <div className="flex card-body items-center">
                         <h2 className="text-2xl card-title">{quizQuestions[i].name}</h2>
                         <ul className="list-disc">
-                            {quizQuestions[i].expand.flavors.map((e) => {
+                            {quizQuestions[i].correct.expand.flavors.map((e) => {
                                 return <li>{e.name}</li>;
                             })}
-                            {quizQuestions[i].expand.toppings.map((e) => {
+                            {quizQuestions[i].correct.expand.toppings.map((e) => {
                                 return <li>{e.name} <span className="italic">(Topping)</span></li>;
                             })}
                         </ul>
@@ -209,10 +190,10 @@ const Competitive = () => {
                     <div className="flex card-body items-center">
                         <h2 className="text-2xl card-title">{quizQuestions[i].name}</h2>
                         <ul className="list-disc">
-                            {quizQuestions[i].expand.flavors.map((e) => {
+                            {quizQuestions[i].correct.expand.flavors.map((e) => {
                                 return <li>{e.name}</li>;
                             })}
-                            {quizQuestions[i].expand.toppings.map((e) => {
+                            {quizQuestions[i].correct.expand.toppings.map((e) => {
                                 return <li>{e.name} <span className="italic">(Topping)</span></li>;
                             })}
                         </ul>
@@ -224,27 +205,25 @@ const Competitive = () => {
 
         return (
             <div className="flex flex-col p-10 gap-8 items-center min-h-screen h-max">
-                <h1 className="text-2xl font-bold">You got {correct} out of {quizQuestions.length} correct!</h1>
+                <h1 className="text-2xl font-bold">You got {numCorrect} out of {answers.current.length} correct!</h1>
                 <div className="flex flex-col gap-5">
                     {results}
                 </div>
             </div>
         );
-    } else { // quiz has been initialized, starting showing questions
-        const combo = quizQuestions[index];
-        var options = [...combo.wrong, combo.correct];
-        options = arrayShuffle(options);
+    } else { // quiz is currently being done
+        const options = optionsMemo;
         
         return (
             <div className="flex justify-center flex-col gap-2 items-center w-screen min-h-screen">
-            <h1 className="text-xl">{index+1} of {numQuestions}</h1>
+            <h1 className="text-3xl">Time Remaining: {msToTime(timeRemaining)}</h1>
             <div className="flex flex-col w-screen h-fit items-center p-5 gap-3 bg-base-100 shadow-xl">
                 <h1 className="text-lg italic flex justify-center">What flavors are in:</h1>
-                <h1 className="text-2xl font-bold flex justify-center">{combo.name}</h1>
+                <h1 className="text-2xl font-bold flex justify-center">{quizQuestions[index].name}</h1>
                 {options.map((option, index) => {
                     return (<div key={index} className="form-control">
                         <label className="label cursor-pointer">
-                            <input type="radio" name="answers" ref={(node) => getRadios()[index] = node} className="radio mx-3" onClick={() => selectedAnswer = option}/>
+                            <input type="radio" name="answers" ref={(node) => getRadios()[index] = node} className="radio mx-3" onClick={() => setSelectedAnswer(option)}/>
                             <div>
                                 <p className="label-text"><span className="font-bold">Flavors: </span>{option.expand.flavors.map(e => e.name).join(', ')}</p>
                                 {option.expand.toppings != null ? 
@@ -255,7 +234,7 @@ const Competitive = () => {
                         </label>
                     </div>);
                 })}
-                <button className="btn btn-block" onClick={() => checkAnswers()}>Submit</button >
+                <button className="btn btn-block" onClick={() => checkAnswer()}>Submit</button >
             </div>
             </div>
         );

@@ -33,7 +33,7 @@ const Chill = () => {
             setAllCombos(result);
         });
 
-        pb.collection('flavors').getFullList({ requestKey: null }).then(result => {
+        pb.collection('ingredients').getFullList({ requestKey: null }).then(result => {
             const flavors = [];
             for (var i = 0 ; i < result.length ; i++) {
                 const flavor = result[i];
