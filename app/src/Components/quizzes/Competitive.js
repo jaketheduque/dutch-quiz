@@ -4,13 +4,14 @@ import PocketBaseContext from "../PocketBaseContext.js";
 import { useTimer } from "../hooks/useTimer.js";
 
 import arrayShuffle from 'array-shuffle';
+import { generateWrongAnswers, compareCombos, generateResults } from "../../Util.js";
 
 const Competitive = () => {
     const pb = useContext(PocketBaseContext);
 
     const [allCombos, setAllCombos] = useState([]);
     const [allIngredients, setAllIngredients] = useState([]);
-    const [selectedAnswer, setSelectedAnswer] = useState();
+    const [selectedAnswer, setSelectedAnswer] = useState(null);
 
     const radioRef = useRef(null);
     const answers = useRef([]);
@@ -18,7 +19,12 @@ const Competitive = () => {
     const [index, setIndex] = useState(-1);
     const [numQuestions, setNumQuestions] = useState(10);
     const [quizQuestions, setQuizQuestions] = useState([]);
-    const [timeRemaining, isRunning, setIsRunning] = useTimer(60 * 1000);
+    const [timeRemaining, isRunning, setIsRunning] = useTimer(5 * 1000);
+
+    const [isFinished, setIsFinished] = useState(false);
+    const [afterQuizPage, setAfterQuizPage] = useState("results"); // results, leaderboard
+    const [result, setResult] = useState();
+    const [leaderboard, setLeaderboard] = useState();
 
     const optionsMemo = useMemo(() => {
         if (quizQuestions.length > 0) {
@@ -38,6 +44,12 @@ const Competitive = () => {
         });
     }, []);
 
+    useEffect(() => {
+        pb.collection('competitive_leaderboard').getFullList({ requestKey: null, expand: 'user'}).then(result => {
+            setLeaderboard(result);
+        });
+    }, [isFinished]);
+
     function getRadios() {
         if (!radioRef.current) {
             radioRef.current = new Array();
@@ -52,7 +64,7 @@ const Competitive = () => {
 
         // for each combo, generate 3 wrong answers
         for (var i = 0 ; i < combos.length ; i++) {
-            const wrongAnswers = generateWrongAnswers(combos[i]);
+            const wrongAnswers = generateWrongAnswers(combos[i], allCombos);
             const question = {
                 name: combos[i].name,
                 correct: combos[i],
@@ -66,85 +78,40 @@ const Competitive = () => {
         setIsRunning(true);
     }
 
-    function compareCombos(combo1, combo2) {
-        var sweet1, sour1, bitter1, salt1, spicy1;
-        var sweet2, sour2, bitter2, salt2, spicy2;
-
-        combo1.expand.flavors.forEach(flavor => {
-            sweet1 += flavor.sweet;
-            sour1 += flavor.sour;
-            bitter1 += flavor.bitter;
-            salt1 += flavor.salt;
-            spicy1 += flavor.spicy;
-        });
-
-        sweet1 /= combo1.flavors.length;
-        sour1 /= combo1.flavors.length;
-        bitter1 /= combo1.flavors.length;
-        salt1 /= combo1.flavors.length;
-        spicy1 /= combo1.flavors.length;
-
-        combo2.expand.flavors.forEach(flavor => {
-            sweet2 += flavor.sweet;
-            sour2 += flavor.sour;
-            bitter2 += flavor.bitter;
-            salt2 += flavor.salt;
-            spicy2 += flavor.spicy;
-        });
-
-        sweet2 /= combo2.flavors.length;
-        sour2 /= combo2.flavors.length;
-        bitter2 /= combo2.flavors.length;
-        salt2 /= combo2.flavors.length;
-        spicy2 /= combo2.flavors.length;
-
-        var totalDiff = 0;
-        totalDiff += Math.abs(sweet1 - sweet2);
-        totalDiff += Math.abs(sour1 - sour2);
-        totalDiff += Math.abs(bitter1 - bitter2);
-        totalDiff += Math.abs(salt1 - salt2);
-        totalDiff += Math.abs(spicy1 - spicy2);
-
-        return totalDiff;
-    }
-
-    // takes in a flavor combo, and returns an array of three other "plausible" answer choices based on the flavors in the combo
-    function generateWrongAnswers(combo) {
-        var similarCombos = [...new Set(allCombos)];
-        similarCombos.sort((a, b) => compareCombos(combo, a) - compareCombos(combo, b));
-
-        return similarCombos.slice(0, 3);
-    }
-
     function checkAnswer() {
+        // check if there is a selected answer
+        if (selectedAnswer == null) {
+            return;
+        }
+
         const combo = quizQuestions[index];
 
         // add answer to list
-        answers.current.push(selectedAnswer);        
-        
-        // checks if answers are correct
-        if (combo.correct == selectedAnswer) {
-            console.log("correct!");
-        } else {
-            console.log("incorrect!");
-        }
+        answers.current.push(selectedAnswer);
 
         // moves question forward by one
         if (quizQuestions.length - index != 1) {
             setIndex(index+1);
         }
 
-        // unchecks each radio box
+        // unchecks each radio box and clears selected answer
         radioRef.current.forEach((element) => element.checked = false);
+        setSelectedAnswer(null);
     }
 
     function msToTime(s) {
         var ms = s % 1000;
         s = (s - ms) / 1000;
         var secs = s % 60;
-      
+        
         return secs + '.' + (Math.floor(ms/100));
-      }
+    }
+
+    // runs only once when quiz is finished
+    if (timeRemaining === 0 && isFinished === false) {
+        setResult(generateResults(quizQuestions, answers));
+        setIsFinished(true);
+    }
     
     if (quizQuestions === undefined | quizQuestions.length == 0) { // quiz has not been started yet
         return ( 
@@ -158,60 +125,57 @@ const Competitive = () => {
             </div>
             </div>
          );
-    } else if (timeRemaining === 0) { // time is up
-        const results = [];
-        var numCorrect = 0;
-        for (var i = 0 ; i < answers.current.length ; i++) {            
-            // create empty toppings array if doesn't exist
-            if (!Object.hasOwn(quizQuestions[i].correct.expand, 'toppings')) {
-                quizQuestions[i].correct.expand.toppings = [];
-            }            
-
-            if (answers.current[i] == quizQuestions[i].correct) {                
-                numCorrect++;
-                results.push(
-                    <div className="card bg-green-600 w-75% text-white">
-                    <div className="flex card-body items-center">
-                        <h2 className="text-2xl card-title">{quizQuestions[i].name}</h2>
-                        <ul className="list-disc">
-                            {quizQuestions[i].correct.expand.flavors.map((e) => {
-                                return <li>{e.name}</li>;
-                            })}
-                            {quizQuestions[i].correct.expand.toppings.map((e) => {
-                                return <li>{e.name} <span className="italic">(Topping)</span></li>;
-                            })}
-                        </ul>
-                    </div>
-                    </div>
-                )
-            } else {
-                results.push(
-                    <div className="card bg-red-600 w-75% text-white">
-                    <div className="flex card-body items-center">
-                        <h2 className="text-2xl card-title">{quizQuestions[i].name}</h2>
-                        <ul className="list-disc">
-                            {quizQuestions[i].correct.expand.flavors.map((e) => {
-                                return <li>{e.name}</li>;
-                            })}
-                            {quizQuestions[i].correct.expand.toppings.map((e) => {
-                                return <li>{e.name} <span className="italic">(Topping)</span></li>;
-                            })}
-                        </ul>
-                    </div>
+    } else if (isFinished) { // time is up, quiz is over
+        var data;
+        switch(afterQuizPage) {
+            case "results":
+                data = result.results;
+                break;
+            case "leaderboard":
+                // TODO add other thing to check if user is signed in
+                // TODO add highlighted row for the just finished run
+                data = (
+                    <div className="w-full">
+                        <table className="table">
+                            <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Username</th>
+                                <th># Correct</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                                {leaderboard.sort((a, b) => b.num_correct - a.num_correct).map((entry) => {
+                                    const created = new Date(entry.created.replace(" ", "T"));
+                                    const formattedCreated = (created.getMonth()+1) + "/" + created.getDate() + "/" + created.getFullYear() + " " + created.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true });
+                                    return (
+                                        <tr>
+                                            <th>{formattedCreated}</th>
+                                            <td>{entry.expand.user.displayName}</td>
+                                            <td>{entry.num_correct}</td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
                     </div>
                 )
-            }
+                break;
         }
 
         return (
             <div className="flex flex-col p-10 gap-8 items-center min-h-screen h-max">
-                <h1 className="text-2xl font-bold">You got {numCorrect} out of {answers.current.length} correct!</h1>
+                <h1 className="text-2xl font-bold">You got {result.numCorrect} out of {answers.current.length} correct!</h1>
+                <div className="join">
+                    <input className="join-item btn" type="radio" name="options" aria-label="Results" defaultChecked onClick={() => setAfterQuizPage("results")}/>
+                    <input className="join-item btn" type="radio" name="options" aria-label="Leaderboard" onClick={() => setAfterQuizPage("leaderboard")}/>
+                </div>
                 <div className="flex flex-col gap-5">
-                    {results}
+                    {data}
                 </div>
             </div>
         );
-    } else { // quiz is currently being done
+    } else { // quiz is in progress
         const options = optionsMemo;
         
         return (
