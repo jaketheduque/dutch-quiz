@@ -12,6 +12,7 @@ const Home = () => {
         <Navbar />
         <button className="btn btn-block rounded-none" onClick={() => navigate('/quiz?mode=competitive')}>Competitive Mode</button>
         <button className="btn btn-block rounded-none" onClick={() => navigate('/quiz?mode=chill')}>Chill Mode</button>
+        <button className="btn btn-block rounded-none" onClick={() => navigate('/flavorcombos')}>Flavor Combos</button>
         </div>
      );
 }

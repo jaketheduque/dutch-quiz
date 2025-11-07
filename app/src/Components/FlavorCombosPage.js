@@ -31,7 +31,7 @@ const FlavorCombosPage = () => {
             </svg>
             </label>
             <div className="flex flex-row flex-wrap gap-5 justify-center">
-                {combos.sort((a, b) => {return a.name.localeCompare(b.name)}).filter((val) => val.name.startsWith(search.toUpperCase())).map((val) => {
+                {combos.sort((a, b) => {return a.name.localeCompare(b.name)}).filter((val) => val.name.toUpperCase().startsWith(search.toUpperCase())).map((val) => {
                     return <FlavorCombo combo={val} />
                 })}
             </div>
